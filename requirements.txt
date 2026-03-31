@@ -1,0 +1,30 @@
+# Core Dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=9.5.0
+
+# YOLO Model
+ultralytics>=8.0.0
+
+# Dataset Handling
+albumentations>=1.3.0
+scikit-learn>=1.2.0
+
+# Text-to-Speech
+pyttsx3>=2.90
+gTTS>=2.3.0
+playsound>=1.3.0
+
+# Utilities
+tqdm>=4.65.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pandas>=2.0.0
+
+# Camera/Video Support
+imutils>=0.5.4
+
+# Configuration
+pyyaml>=6.0

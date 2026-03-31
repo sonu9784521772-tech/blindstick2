@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlindStick Mobile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: rgba(22, 33, 62, 0.9);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            color: #00d9ff;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .container {
+            flex: 1;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .status-card {
+            background: rgba(15, 52, 96, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .status-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #666;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.connected {
+            background: #00ff88;
+        }
+        
+        .status-dot.connecting {
+            background: #ffa500;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00d9ff;
+            font-weight: 600;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            background: rgba(15, 52, 96, 0.5);
+            color: white;
+            font-size: 16px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00d9ff, #0099cc);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 217, 255, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e94560, #c92a4a);
+            color: white;
+        }
+        
+        .detections-list {
+            background: rgba(15, 52, 96, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .detection-item {
+            background: rgba(22, 33, 62, 0.8);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #00d9ff;
+        }
+        
+        .detection-name {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        .detection-distance {
+            color: #00ff88;
+            font-size: 14px;
+        }
+        
+        .video-container {
+            background: black;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        #videoStream {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .no-video {
+            padding: 60px 20px;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👁️ BlindStick Mobile</h1>
+        <p>Assistive Navigation System</p>
+    </div>
+    
+    <div class="container">
+        <!-- Connection Panel -->
+        <div class="status-card">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            
+            <div class="input-group">
+                <label for="ipAddress">Raspberry Pi IP Address</label>
+                <input type="text" id="ipAddress" placeholder="e.g., 10.199.250.43" value="10.199.250.43">
+            </div>
+            
+            <button class="btn btn-primary" onclick="connectToPi()" id="connectBtn">
+                🔌 Connect to Raspberry Pi
+            </button>
+            
+            <button class="btn btn-danger" onclick="disconnect()" id="disconnectBtn" style="display: none;">
+                ❌ Disconnect
+            </button>
+        </div>
+        
+        <!-- Video Stream -->
+        <div class="status-card">
+            <h2 style="margin-bottom: 15px; color: #00d9ff;">📹 Live Camera Feed</h2>
+            <div class="video-container" id="videoContainer">
+                <div class="no-video">
+                    <p>No video stream</p>
+                    <p style="font-size: 12px; margin-top: 10px;">Connect to Raspberry Pi to see camera feed</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detections -->
+        <div class="status-card">
+            <h2 style="margin-bottom: 15px; color: #00d9ff;">🎯 Detected Objects</h2>
+            <div class="detections-list" id="detectionsList">
+                <p style="text-align: center; color: #666;">No objects detected yet</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let commandSocket = null;
+        let isConnected = false;
+        
+        function connectToPi() {
+            const ip = document.getElementById('ipAddress').value.trim();
+            if (!ip) {
+                alert('Please enter Raspberry Pi IP address');
+                return;
+            }
+            
+            updateStatus('connecting', 'Connecting to ' + ip + '...');
+            
+            // Connect to video stream
+            socket = new WebSocket(`ws://${ip}:8889`);
+            socket.binaryType = 'arraybuffer';
+            
+            socket.onopen = () => {
+                console.log('Connected to video stream');
+                
+                // Connect to command socket
+                commandSocket = new WebSocket(`ws://${ip}:8890`);
+                
+                commandSocket.onopen = () => {
+                    console.log('Connected to command stream');
+                    updateStatus('connected', 'Connected to Raspberry Pi');
+                    startStreaming();
+                };
+                
+                commandSocket.onerror = (error) => {
+                    console.error('Command socket error:', error);
+                };
+            };
+            
+            socket.onerror = (error) => {
+                console.error('Video socket error:', error);
+                updateStatus('disconnected', 'Connection failed. Check IP and try again.');
+                alert('Connection failed. Make sure:\n1. Pi server is running\n2. Correct IP address\n3. Same WiFi network');
+            };
+            
+            socket.onmessage = (event) => {
+                processFrame(event.data);
+            };
+        }
+        
+        function startStreaming() {
+            if (commandSocket && commandSocket.readyState === WebSocket.OPEN) {
+                commandSocket.send(JSON.stringify({
+                    type: 'start',
+                    width: 640,
+                    height: 480,
+                    fps: 15
+                }));
+            }
+        }
+        
+        function processFrame(data) {
+            // Display video frame
+            const blob = new Blob([data], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            
+            const container = document.getElementById('videoContainer');
+            container.innerHTML = `<img src="${url}" id="videoStream" alt="Live stream">`;
+            
+            // Simulate object detection (in real implementation, this would come from server)
+            simulateDetections();
+        }
+        
+        function simulateDetections() {
+            const detections = [
+                { name: 'Person', distance: 2.3 },
+                { name: 'Chair', distance: 5.7 },
+                { name: 'Table', distance: 8.2 }
+            ];
+            
+            const list = document.getElementById('detectionsList');
+            list.innerHTML = detections.map(d => `
+                <div class="detection-item">
+                    <div class="detection-name">${d.name}</div>
+                    <div class="detection-distance">Distance: ${d.distance}m</div>
+                </div>
+            `).join('');
+        }
+        
+        function disconnect() {
+            if (socket) socket.close();
+            if (commandSocket) commandSocket.close();
+            
+            isConnected = false;
+            updateStatus('disconnected', 'Disconnected');
+            
+            document.getElementById('connectBtn').style.display = 'block';
+            document.getElementById('disconnectBtn').style.display = 'none';
+            
+            document.getElementById('videoContainer').innerHTML = `
+                <div class="no-video">
+                    <p>No video stream</p>
+                    <p style="font-size: 12px; margin-top: 10px;">Connect to Raspberry Pi to see camera feed</p>
+                </div>
+            `;
+            
+            document.getElementById('detectionsList').innerHTML = `
+                <p style="text-align: center; color: #666;">No objects detected yet</p>
+            `;
+        }
+        
+        function updateStatus(state, text) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            
+            dot.className = 'status-dot';
+            
+            if (state === 'connected') {
+                dot.classList.add('connected');
+                isConnected = true;
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('disconnectBtn').style.display = 'block';
+            } else if (state === 'connecting') {
+                dot.classList.add('connecting');
+            }
+            
+            txt.textContent = text;
+        }
+        
+        // Text-to-speech for announcements
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+</body>
+</html>
