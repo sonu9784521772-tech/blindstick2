@@ -37,6 +37,10 @@ android {
             signingConfig = signingConfigs.debug
         }
     }
+
+    configurations.all {
+        exclude group: 'com.google.ai.edge.litert'
+    }
 }
 
 flutter {

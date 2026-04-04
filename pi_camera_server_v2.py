@@ -14,6 +14,11 @@ import json
 import threading
 from datetime import datetime
 
+try:
+    from gpiozero import Button
+except ImportError:
+    Button = None
+
 # Use picamera2 for newer Pi OS
 from picamera2 import Picamera2
 from PIL import Image
@@ -45,6 +50,10 @@ class PiCameraServer:
         self.connected_clients = 0
         self.frames_sent = 0
         
+        # SOS hardware
+        self.sos_button = None
+        self.init_sos_button()
+        
         # Camera
         self.camera = None
         
@@ -73,6 +82,29 @@ class PiCameraServer:
             print("  Make sure camera is connected and enabled")
             print("  Check with: libcamera-hello")
             return False
+            
+    def init_sos_button(self):
+        if Button is not None:
+            try:
+                # pull_up=True means it connects to ground when pressed.
+                self.sos_button = Button(17, pull_up=True, bounce_time=0.5)
+                self.sos_button.when_pressed = self.trigger_sos
+                print("✓ Hardware SOS button initialized on GPIO 17")
+            except Exception as e:
+                print(f"✗ Could not initialize remote SOS button: {e}")
+
+    def trigger_sos(self):
+        print("\n\n!!! HARDWARE SOS BUTTON PRESSED !!!\n")
+        # Ensure we have an active command stream to the phone
+        if self.command_client:
+            try:
+                # Send raw string command simulating json structure or exact string match
+                self.command_client.send("sos_trigger".encode('utf-8'))
+                print("✓ SOS sent to mobile app")
+            except Exception as e:
+                print(f"✗ Failed to send SOS to phone: {e}")
+        else:
+            print("✗ No mobile phone connected to receive SOS!")
     
     def start_server(self):
         """Start the camera server."""
